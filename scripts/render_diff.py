@@ -26,7 +26,7 @@ comments.json
   summary (anchored to the header).
 
 meta.json
-  {"title": "one-line essence<br>second line", "lede": "2-3 sentences", "author": "name", "slug": "fclt-search"}
+  {"title": "one-line essence<br>second line", "lede": "2-3 sentences", "author": "name", "slug": "fclt-search", "pr_title": "PR title"}
   author falls back to git if omitted; slug falls back to the sha if omitted.
 """
 from __future__ import annotations
@@ -804,6 +804,7 @@ def strip_tags(s: str) -> str:
     return re.sub(r"<[^>]+>", " ", s).replace("  ", " ").strip()
 
 
+# Assemble the page from the selected Git changes and optional metadata.
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--repo", default=".", help="Path to the git repository")
@@ -814,7 +815,7 @@ def main(argv=None) -> int:
     ap.add_argument("--list", action="store_true", help="Print only files/hunks/line ranges, then exit")
     ap.add_argument("--explain", help="HTML body for the explain tab (4 sections, including snippet placeholders)")
     ap.add_argument("--comments", help="comments.json")
-    ap.add_argument("--meta", help="meta.json (title, lede, author, slug)")
+    ap.add_argument("--meta", help="meta.json (title, lede, author, slug, pr_title)")
     ap.add_argument("--template", default=str(DEFAULT_TEMPLATE))
     ap.add_argument(
         "--lang", default="en",
@@ -912,17 +913,34 @@ def main(argv=None) -> int:
     title = meta.get("title") or S["default_title"](label)
     lede = meta.get("lede") or ""
     slug = meta.get("slug") or re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
-    stat_text = f"+{adds} −{dels} · {len(files)} files"
-    badges = (
-        '<span class="badge"><span class="dot"></span>explain diff</span>'
-        f'<span class="badge"><span class="mono">{esc(label)}</span></span>'
-        f'<span class="badge">{esc(author)}</span>'
-        f'<span class="badge">{esc(stat_text)}</span>'
-    )
+    common_dir = Path(run_git(repo, "rev-parse", "--path-format=absolute", "--git-common-dir").strip())
+    project = meta.get("project") or (common_dir.parent.name if common_dir.name == ".git" else gallery_project_name(repo))
+    target = meta.get("pr_title") or label
+    branch = ""
+    if args.range_:
+        ref = run_git(repo, "rev-parse", "--symbolic-full-name", b, check=False).strip()
+        if ref.startswith("refs/heads/"):
+            branch = ref.removeprefix("refs/heads/")
+    elif not args.commit:
+        branch = run_git(repo, "symbolic-ref", "--short", "-q", "HEAD", check=False).strip()
+    stats = f'<span class="badge-add">+{adds}</span> <span class="badge-del">−{dels}</span> · <span class="badge-files">{len(files)} files</span>'
+    branch_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="3" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="21" r="2"/><path d="M6 5v14M18 8a6 6 0 0 1-6 6H6"/></svg>'
+    items = [("Project" if args.lang != "ko" else "프로젝트", esc(project)),
+             ("Changes" if args.lang != "ko" else "변경량", stats),
+             ("PR" if meta.get("pr_title") else ("Changes" if args.lang != "ko" else "변경 기준"), esc(target)),
+             ("Author" if args.lang != "ko" else "작성자", esc(author))]
+    if branch:
+        items.append(("Branch" if args.lang != "ko" else "브랜치", branch_icon + esc(branch)))
+    if not args.commit and not args.range_:
+        items.append(("Scope" if args.lang != "ko" else "범위", "Working tree" if args.lang != "ko" else "작업 트리"))
+    badges = ''.join(f'<span class="badge">{value}</span>' for _, value in items)
+    card = ''.join(f'<div class="badge-detail"><span>{name}</span><strong>{value}</strong></div>' for name, value in items)
+    more_label = "More details" if args.lang != "ko" else "상세 정보 더 보기"
+    badges += (f'<details class="badge-more" hidden><summary class="badge" aria-label="{more_label}">+0</summary>'
+               f'<div class="badge-popover">{card}</div></details>')
     side_stat = (f'<b>{len(files)}</b> files · <span class="add">+{adds}</span> <span class="del">−{dels}</span>'
                  f' · {S["comments_stat_html"](len(comments))}')
-    tb_stat = (f'<b>{len(files)}</b> files <span class="add">+{adds}</span> <span class="del">−{dels}</span>'
-               f' · {S["comments_stat_html"](len(comments))}')
+    tb_stat = S["comments_stat_html"](len(comments))
     shown = [f.path for f in files[:3]]
     more = S["and_more"](len(files) - 3) if len(files) > 3 else ""
     footer = f"{esc(label)} · {esc(' · '.join(shown))}{more} · {esc(date)}"

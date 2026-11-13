@@ -44,7 +44,7 @@ diff's own say-so.
 3. Write three files in a scratch folder (e.g. `$TMPDIR/explain-<slug>/`, outside the repo):
    - `explain-main.html` — the Explain tab body. Four `<section id="background|intuition|code|quiz">`.
    - `comments.json` — the Review tab comments.
-   - `meta.json` — `title`, `lede`, `author` (optional), `slug`.
+   - `meta.json` — `title`, `lede`, `author` (optional), `slug`, and, for a PR, its original `pr_title`.
 4. Assemble and open it. Pass `--lang` to match the conversation's language — it controls the
    page's static chrome (tab labels, toolbar buttons, tooltips, the quiz feedback strings), which is
    separate from the prose you write yourself in step 3 and always follows the conversation language
@@ -265,12 +265,15 @@ what the file is, or skip it entirely.
   "title": "Fix the settings drawer to open scoped to the workspace you're already in",
   "lede": "2-3 sentences on what was broken and what this change does.",
   "author": "Jane Doe",
+  "pr_title": "Fix workspace settings drawer",
   "slug": "workspace-settings-drawer-scope"
 }
 ```
 
 `title` should capture the essence of the change in one sentence. Don't just copy the commit
-message. `author`, stats, and the sha are filled in automatically from git.
+message. For a PR, set `pr_title` to the actual PR title so the header identifies it; omit it for
+other changes. `project` can optionally override the repository folder name in the header.
+`author`, stats, and the sha are filled in automatically from git.
 
 ## Output
 
