@@ -99,9 +99,9 @@ Review tab markup contract:
     --radius-sm: 8px;
     --radius: 12px;
     --ease: cubic-bezier(.22, 1, .36, 1);
-    --cols: 200px minmax(0, 720px) 286px;
+    --cols: 200px minmax(0, 1600px) 286px;
     --gap: 40px;
-    --maxw: 1350px;
+    --maxw: 2230px;
     --hd: 78px;   /* compact header height. JS measures and overrides this */
     --tb: 44px;   /* review toolbar height */
   }
@@ -465,12 +465,12 @@ Review tab markup contract:
     font-family: "Geist Mono", ui-monospace, Menlo, Consolas, monospace;
     font-size: 12.5px; line-height: 20px; table-layout: fixed;
   }
-  .gh-diff-tbl col.c-ln { width: 44px; }
+  .gh-diff-tbl col.c-ln { width: var(--line-width, 44px); }
   .gh-diff-tbl col.c-gut { width: 26px; }
   .gh-diff-tbl td { vertical-align: top; padding: 0 14px 0 8px; white-space: pre-wrap; word-break: break-word; color: var(--muted); }
   .gh-diff-tbl tr:first-child td { padding-top: 5px; }
   .gh-diff-tbl tr:last-child td { padding-bottom: 5px; }
-  .gh-diff-tbl .ln { width: 40px; text-align: right; color: var(--faint); font-size: 11px; user-select: none; padding: 0 7px; }
+  .gh-diff-tbl .ln { width: var(--line-width, 44px); white-space: nowrap; text-align: right; color: var(--faint); font-size: 11px; user-select: none; padding: 0 7px; }
   .gh-diff-tbl .gutter { width: 26px; text-align: center; color: var(--faint); font-size: 11px; user-select: none; padding: 0; }
   .gh-diff-tbl tr.ctx td { background: transparent; }
   .gh-diff-tbl tr.add td { background: color-mix(in srgb, var(--success) 9%, transparent); color: var(--text); }
@@ -624,6 +624,37 @@ Review tab markup contract:
   body[data-wrap="off"] .rv-file, body[data-wrap="off"] .rv-file-body { height: auto; }
   body[data-wrap="off"] .rv-file-body { overflow-x: auto; overflow-y: hidden; }
 
+  .rv-native { display: none; position: relative; }
+  .rv-native::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 50%; z-index: 3;
+    width: 1px; background: var(--border); pointer-events: none;
+  }
+  body[data-diff-view="split"] .rv-original { display: none; }
+  body[data-diff-view="split"] .rv-native { display: flex; width: 100%; }
+  body[data-diff-view="split"] .rv-original[hidden] + .rv-native { display: none; }
+  body[data-diff-view="split"] .rv-file-body { overflow-x: hidden; }
+  .rv-native-pane { width: 50%; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+  .rv-native-pane .rv-tbl { min-width: 100%; }
+  .rv-native-pane .rv-tbl .ln { position: sticky; left: 0; z-index: 2; background: var(--surface); }
+  /* Keep sticky line numbers opaque while the code's highlight animation fades. */
+  .rv-native-pane .rv-tbl tr.rv-flash .ln { animation: none; }
+  .rv-native-pane .rv-tbl tr.add .ln { background: color-mix(in srgb, var(--success) 9%, var(--surface)); }
+  .rv-native-pane .rv-tbl tr.del .ln {
+    background: repeating-linear-gradient(45deg, var(--danger) 0, var(--danger) 1.5px, transparent 1.5px, transparent 3px) left top / 3px 100% no-repeat,
+      color-mix(in srgb, var(--danger) 9%, var(--surface));
+  }
+  .rv-native-pane .rv-tbl tr.rv-on .ln {
+    background-image: linear-gradient(var(--rv-active-tint, color-mix(in srgb, #4d8dff 11%, transparent)), var(--rv-active-tint, color-mix(in srgb, #4d8dff 11%, transparent))), linear-gradient(var(--surface), var(--surface));
+  }
+  .rv-native-pane .rv-tbl tr.del.rv-on .ln {
+    background-image: repeating-linear-gradient(45deg, var(--danger) 0, var(--danger) 1.5px, transparent 1.5px, transparent 3px), linear-gradient(var(--rv-active-tint), var(--rv-active-tint)), linear-gradient(var(--surface), var(--surface));
+    background-position: left top, 0 0, 0 0; background-size: 3px 100%, 100% 100%, 100% 100%; background-repeat: no-repeat;
+    box-shadow: none;
+  }
+  .rv-native-pane .rv-tbl tr.rv-blank td { height: 20px; }
+  #toggleSplit:disabled { opacity: .35; cursor: not-allowed; }
+  #toggleSplit .ic-split, #toggleSplit.on .ic-single { display: none; }
+  #toggleSplit.on .ic-split { display: block; }
   .rv-file {
     border-radius: var(--radius); overflow: clip;
     margin: 0 0 14px; scroll-margin-top: calc(var(--hd) + var(--tb) + 24px);
@@ -640,7 +671,7 @@ Review tab markup contract:
     padding: 10px 14px 10px 12px;
     font-family: "Geist Mono", ui-monospace, monospace; font-size: 12.5px; line-height: 1;
     position: sticky; top: calc(var(--hd) + var(--tb) + 24px); z-index: 20;
-    background: var(--surface); border: 1px solid transparent;
+    background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius) var(--radius) 0 0; box-shadow: var(--shadow-card);
   }
   .rv-file:not([open]) .rv-file-hd { border-radius: var(--radius); }
@@ -656,6 +687,7 @@ Review tab markup contract:
   }
   .rv-file[open] .rv-file-hd.is-ending { border-radius: var(--radius); }
   .rv-file-hd::-webkit-details-marker { display: none; }
+  /* Keep the outline above the sticky header's masking layer. */
   .rv-file-hd::after {
     content: ""; position: absolute; inset: -1px; z-index: 1;
     border: 1px solid var(--border); border-radius: inherit; pointer-events: none;
@@ -687,6 +719,7 @@ Review tab markup contract:
   .rv-file { min-width: 0; }
   .rv-file-body {
     overflow: hidden; border-radius: 0 0 var(--radius) var(--radius);
+    border: 1px solid var(--border); border-top: 0;
     width: 100%; min-width: 0; background: var(--surface);
   }
   html.theme-ready .rv-file-body {
@@ -1081,6 +1114,10 @@ Review tab markup contract:
           <svg class="ic-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4l5 5 5-5M7 20l5-5 5 5"/></svg>
           <span class="lbl" data-i18n="collapseAll">Collapse all</span>
         </button>
+        <button type="button" id="toggleSplit" class="ic-only" aria-label="Split view" title="Split view" aria-pressed="false">
+          <svg class="ic-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>
+          <svg class="ic-single" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/></svg>
+        </button>
         <button type="button" id="toggleWrap" class="ic-only" title="Turn on line wrap" aria-label="Turn on line wrap" aria-pressed="false">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h15a3 3 0 1 1 0 6h-4M3 18h7"/><path d="m16 16-2 2 2 2"/></svg>
         </button>
@@ -1127,7 +1164,7 @@ Review tab markup contract:
     en: {
       explain: 'Explain', review: 'Review', contents: 'Contents',
       background: 'Background', intuition: 'Intuition', code: 'Code', quiz: 'Quiz',
-      changedFiles: 'Changed files',
+      changedFiles: 'Changed files', scrollOld: 'Scroll old code horizontally', scrollNew: 'Scroll new code horizontally', splitView: 'Show side by side', unifiedView: 'Show unified view', splitUnavailable: 'Side by side requires a wider code area',
       close: 'Close',
       collapseAll: 'Collapse all', expandAll: 'Expand all',
       wrapOn: 'Turn on line wrap', wrapOff: 'Turn off line wrap',
@@ -1146,7 +1183,7 @@ Review tab markup contract:
     ko: {
       explain: '설명', review: '리뷰', contents: '목차',
       background: '배경', intuition: '직관', code: '코드', quiz: '퀴즈',
-      changedFiles: '변경 파일',
+      changedFiles: '변경 파일', scrollOld: '이전 코드 가로 스크롤', scrollNew: '변경 코드 가로 스크롤', splitView: '좌우로 보기', unifiedView: '위아래로 보기', splitUnavailable: '코드 영역이 더 넓어야 좌우로 볼 수 있습니다',
       close: '닫기',
       collapseAll: '전체 접기', expandAll: '전체 펼침',
       wrapOn: '줄바꿈 켜기', wrapOff: '줄바꿈 끄기',
@@ -1482,7 +1519,7 @@ Review tab markup contract:
   try { savedWrap = localStorage.getItem('explain-wrap'); } catch (e) {}
   applyWrap(savedWrap === 'on');
   var tw = $('#toggleWrap');
-  if (tw) tw.addEventListener('click', function () { applyWrap(!wrapOn()); scheduleLayout(); });
+  if (tw) tw.addEventListener('click', function () { applyWrap(!wrapOn()); scheduleLayout(); requestAnimationFrame(fitSplitViews); });
   function expandMode() { return body.getAttribute('data-expand') === 'click' ? 'click' : 'scroll'; }
   function applyExpandMode(mode) {
     body.setAttribute('data-expand', mode === 'click' ? 'click' : 'scroll');
@@ -1522,6 +1559,7 @@ Review tab markup contract:
       var bodyEl = bar.closest('.rv-file-body');
       if (bodyEl) bodyEl.style.height = '';
       scheduleLayout();
+      requestAnimationFrame(fitSplitViews);
     });
     b.dataset.open = b.textContent;
     b.dataset.close = b.textContent.replace(T.elideExpandWord, T.elideCollapseWord);
@@ -1662,9 +1700,17 @@ Review tab markup contract:
     requestAnimationFrame(function () { layoutQueued = false; layoutComments(); syncEndingObservers(); });
   }
   var rvPane = $('.pane[data-pane="review"]');
-  function rowsOf(id) { return $$('[data-rv~="' + id + '"]', rvPane); }
+  function rowsOf(id) {
+    return $$('[data-rv~="' + id + '"]', rvPane).filter(function (row) {
+      var native = !!row.closest('.rv-native');
+      return row.matches('summary') || (body.dataset.diffView === 'split' ? native : !native);
+    }).sort(function (a, b) {
+      var av = !!a.getClientRects().length, bv = !!b.getClientRects().length;
+      return av !== bv ? (av ? -1 : 1) : a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+    });
+  }
   function anchorVisible(a) {
-    if (!a) return false;
+    if (!a || !a.getClientRects().length) return false;
     var d = a.closest('details.rv-file');
     if (d && !d.open && !a.matches('summary')) return false;
     var tbl = a.closest('table');
@@ -2184,8 +2230,121 @@ Review tab markup contract:
   }
   mqMobile.addEventListener('change', function () { syncMobileDock(); scheduleLayout(); });
 
+  var splitButton = $('#toggleSplit'), splitWanted = true, splitPrepared = false;
+  // Build two native scrollable tables with matching rows for each file.
+  function prepareSplitRows() {
+    $$('.rv-file-body > .rv-tbl').forEach(function (source) {
+      source.classList.add('rv-original');
+      var view = document.createElement('div'), panes = [], bodies = [], pairs = [];
+      view.className = 'rv-native';
+      [0, 1].forEach(function (side) {
+        var pane = document.createElement('div'), table = source.cloneNode(false);
+        pane.className = 'rv-native-pane';
+        pane.tabIndex = 0;
+        pane.setAttribute('role', 'region');
+        pane.setAttribute('aria-label', side === 0 ? T.scrollOld : T.scrollNew);
+        table.classList.remove('rv-original');
+        table.removeAttribute('hidden');
+        table.innerHTML = '<colgroup><col class="c-ln"><col class="c-gut"><col></colgroup>';
+        var tbody = document.createElement('tbody');
+        table.appendChild(tbody); pane.appendChild(table); view.appendChild(pane);
+        panes.push(pane); bodies.push(tbody);
+      });
+      // Duplicate context and insert blank rows so matching changes stay aligned.
+      function appendPair(left, right) {
+        var pair = [left, right].map(function (row, side) {
+          var item;
+          if (row) {
+            item = row.cloneNode(true);
+            var unused = item.querySelector(side === 0 ? '.ln.new' : '.ln.old');
+            if (unused) unused.remove();
+            var spanning = item.querySelector('[colspan]');
+            if (spanning) spanning.colSpan = 3;
+          } else {
+            item = document.createElement('tr'); item.className = 'rv-blank';
+            item.innerHTML = '<td colspan="3"></td>';
+          }
+          bodies[side].appendChild(item);
+          return item;
+        });
+        pairs.push(pair);
+      }
+      var rows = $$('tbody > tr', source), i = 0;
+      while (i < rows.length) {
+        if (rows[i].classList.contains('del') || rows[i].classList.contains('add')) {
+          var removed = [], added = [];
+          while (i < rows.length && rows[i].classList.contains('del')) removed.push(rows[i++]);
+          while (i < rows.length && rows[i].classList.contains('add')) added.push(rows[i++]);
+          for (var n = 0; n < Math.max(removed.length, added.length); n++) appendPair(removed[n], added[n]);
+        } else { appendPair(rows[i], rows[i]); i++; }
+      }
+      view._pairs = pairs;
+      var mirrored = [null, null];
+      panes.forEach(function (pane, side) {
+        pane.addEventListener('scroll', function () {
+          var value = pane.scrollLeft, otherSide = side === 0 ? 1 : 0, other = panes[otherSide];
+          if (mirrored[side] === value) { mirrored[side] = null; return; }
+          mirrored[side] = null;
+          if (other.scrollLeft !== value) { mirrored[otherSide] = value; other.scrollLeft = value; }
+        });
+      });
+      source.after(view);
+    });
+    splitPrepared = true;
+  }
+  // Match native table widths and row heights after layout or line-wrap changes.
+  function fitSplitViews() {
+    if (body.dataset.diffView !== 'split') return;
+    $$('.rv-native').forEach(function (view) {
+      if (!view.getClientRects().length) return;
+      var panes = Array.from(view.children), tables = panes.map(function (pane) { return pane.firstElementChild; });
+      tables.forEach(function (table) { table.style.minWidth = ''; });
+      view._pairs.forEach(function (pair) { pair[0].style.height = ''; pair[1].style.height = ''; });
+      if (body.dataset.wrap === 'off') {
+        var width = Math.max(tables[0].offsetWidth, tables[1].offsetWidth);
+        tables.forEach(function (table) { table.style.minWidth = width + 'px'; });
+      }
+      var heights = view._pairs.map(function (pair) {
+        return Math.max(pair[0].getBoundingClientRect().height, pair[1].getBoundingClientRect().height);
+      });
+      view._pairs.forEach(function (pair, index) {
+        pair[0].style.height = heights[index] + 'px'; pair[1].style.height = heights[index] + 'px';
+      });
+    });
+    scheduleLayout();
+  }
+  // Use side-by-side view only while the code area has enough room.
+  function syncSplitView() {
+    var available = $('main').getBoundingClientRect().width >= 960 && !mqMobile.matches;
+    var split = available && splitWanted;
+    if (split && !splitPrepared) prepareSplitRows();
+    var changed = (body.dataset.diffView === 'split') !== split;
+    body.dataset.diffView = split ? 'split' : 'unified';
+    splitButton.disabled = !available;
+    splitButton.classList.toggle('on', split);
+    splitButton.setAttribute('aria-pressed', String(split));
+    splitButton.setAttribute('aria-label', !available ? T.splitUnavailable : split ? T.unifiedView : T.splitView);
+    splitButton.title = splitButton.getAttribute('aria-label');
+    if (split) requestAnimationFrame(fitSplitViews);
+    else if (changed) scheduleLayout();
+  }
+  splitButton.addEventListener('click', function () { splitWanted = !splitWanted; syncSplitView(); });
+  if (window.ResizeObserver) new ResizeObserver(syncSplitView).observe($('main'));
+  else window.addEventListener('resize', syncSplitView);
+
+  // Fit each file's line-number column to its largest line number.
+  function sizeLineNumbers() {
+    $$('.rv-tbl').forEach(function (table) {
+      var digits = 0;
+      $$('.ln', table).forEach(function (line) { digits = Math.max(digits, line.textContent.trim().length); });
+      table.style.setProperty('--line-width', (44 + Math.max(0, digits - 3) * 6) + 'px');
+    });
+  }
+
   /* ---------- init ---------- */
+  sizeLineNumbers();
   syncMobileDock();
+  syncSplitView();
   measureHero();
   syncFolds();
   if (files.length === 0 && $('#rvFiles')) {
