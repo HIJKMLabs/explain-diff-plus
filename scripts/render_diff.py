@@ -601,6 +601,7 @@ def render_stat(adds: int, dels: int, cls: str = "gh-stat") -> str:
     return f'<span class="{cls}">{"".join(parts)}</span>'
 
 
+# Render one changed file and its review comment count.
 def render_review_file(f: DFile, comments: list[Comment], ui_lang: str = "en") -> str:
     S = strings_for(ui_lang)
     lang = lang_of(f.path)
@@ -617,7 +618,11 @@ def render_review_file(f: DFile, comments: list[Comment], ui_lang: str = "en") -
     path_html = esc(f.path)
     if f.status == "renamed" and f.old_path and f.old_path != f.new_path:
         path_html = f'{esc(f.old_path)} → {esc(f.new_path)}'
-    cnt = f'<span class="rv-cnt">{S["comments_badge"](n_comments)}</span>' if n_comments else ""
+    cnt = (f'<span class="rv-cnt" role="img" aria-label="{S["comments_badge"](n_comments)}">'
+           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+           'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+           '<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H5l-2 2v-6.5a8.5 8.5 0 1 1 18-4z"/></svg>'
+           f'{n_comments}</span>') if n_comments else ""
     head = (
         f'<summary class="rv-file-hd"{summary_rv}><span class="rv-chev"></span>'
         f'<span class="rv-path">{path_html}</span>{"".join(badges)}'
