@@ -39,6 +39,8 @@ the assembler, the template — was written independently for this repo. See
   - `scripts/render_diff.py` — reads the real `git diff` and assembles the page, instead of the
     agent hand-transcribing a diff into HTML
   - Light/dark theme, line-wrap toggles, per-tab scroll memory
+  - Short touch landscape screens (up to 500px tall and 1199px wide) use a header drawer
+    and right-side controls, with the reading position preserved on rotation
   - A copy button that copies `file:line` on drag-select in a code block 
   - A `--lang` switch (`en`/`ko`) for the page's static chrome
   - A writing-style guide (consistent tone, plain non-literary titles, comment density/overlap rules)

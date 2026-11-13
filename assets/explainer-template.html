@@ -979,7 +979,7 @@ Review tab markup contract:
     html[data-theme], :root { --cols: 200px minmax(0, 1fr); --maxw: 1080px; }
     .rv-col { display: none; }
   }
-  @media (max-width: 860px) {
+  @media (max-width: 860px), (max-width: 1199px) and (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
     html[data-theme], :root { --cols: 1fr; --gap: 8px; }
     .hero-in { padding-left: 18px; padding-right: 18px; }
     .hero-txt { grid-column: 1; }
@@ -1034,6 +1034,54 @@ Review tab markup contract:
     .mobile-files-dialog { position: fixed; inset: auto 12px calc(76px + env(safe-area-inset-bottom)); margin: 0 auto; width: min(440px, calc(100vw - 24px)); max-height: min(60vh, 480px); padding: 12px; overflow: auto; overscroll-behavior: contain; }
     .mobile-files-dialog .toc-kicker { display: none; }
     @media (prefers-reduced-motion: reduce) { html.theme-ready .mobile-review, html.theme-ready .mobile-dock .tabs::before { transition: none; } }
+  }
+  .mobile-dock .landscape-toggle { display: none; }
+  .landscape-header-dialog {
+    position: fixed; inset: 0 auto 0 0; margin: 0; width: min(360px, calc(100vw - 64px));
+    height: 100dvh; max-height: 100dvh; max-width: none; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) env(safe-area-inset-left);
+    border: 0; border-right: 1px solid var(--border); color: var(--text);
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+    overflow: auto; overscroll-behavior: contain;
+  }
+  .landscape-header-dialog::backdrop { background: rgba(0,0,0,.28); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  html:has(.landscape-header-dialog[open]), body:has(.landscape-header-dialog[open]) { overflow: hidden; overscroll-behavior: none; }
+  .landscape-header-dialog .mobile-files-heading { position: sticky; top: env(safe-area-inset-top); z-index: 2; padding: 12px 16px; background: var(--surface); }
+  .landscape-header-dialog .hero { position: relative; inset: auto; z-index: 0; --p: 0; }
+  .landscape-header-dialog .hero::before { display: none; }
+  .landscape-header-dialog .hero-in { display: block; padding: 16px; }
+  .landscape-header-dialog .hero-top { align-items: flex-start; }
+  .landscape-header-dialog .badge-row { display: block; transform: none; }
+  .landscape-header-dialog .badge-row > .badge { display: inline-block; max-width: 100%; margin: 0 4px 6px 0; vertical-align: top; }
+  .landscape-header-dialog .badge-more { position: static; display: block; }
+  .landscape-header-dialog .badge-popover { position: static; width: 100%; margin-top: 8px; }
+  .landscape-header-dialog h1 { font-size: 22px; white-space: normal; overflow: visible; }
+  .landscape-header-dialog .lede { max-height: none; opacity: 1; font-size: 14px; }
+  @media (max-width: 1199px) and (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+    html { scrollbar-gutter: stable; }
+    #heroSlot { display: none; }
+    .shell { padding: max(8px, env(safe-area-inset-top)) calc(64px + env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+    .rv-file-hd { top: env(safe-area-inset-top); }
+    .rv-file { scroll-margin-top: 8px; }
+    .mobile-dock {
+      top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); bottom: auto; left: auto; transform: none;
+      flex-direction: column; gap: 6px; width: 44px; max-width: 44px; padding: 2px;
+      max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+      overflow-y: auto; scrollbar-width: thin; overscroll-behavior: contain;
+    }
+    .mobile-dock .landscape-toggle { display: grid; }
+    .mobile-dock .tabs { grid-template-columns: 1fr; margin: 0; }
+    .mobile-dock .tabs::before { width: calc(100% - 6px); height: calc(50% - 3px); }
+    body[data-tab="review"] .mobile-dock .tabs::before { transform: translateY(100%); }
+    .mobile-dock > button, .mobile-review > button { height: 32px; }
+    .mobile-review, body[data-tab="review"] .mobile-review { flex-direction: column; flex: none; width: 40px; height: auto; margin: 0; padding: 3px 0; overflow: visible; }
+    .mobile-review[inert] { display: none; }
+    html.theme-ready .mobile-review { transition: none; }
+    .mobile-review .inline-nav { flex-direction: column; width: 40px; }
+    .mobile-review .inline-nav button { width: 40px; height: 26px; }
+    .mobile-review .inline-nav svg { transform: rotate(90deg); }
+    #inlineCount { width: 36px; min-height: 28px; text-align: center; font-size: 10px; line-height: 14px; white-space: normal; }
+    .mobile-files-dialog { inset: max(12px, env(safe-area-inset-top)) calc(64px + env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); margin: auto; width: min(440px, calc(100vw - 88px - env(safe-area-inset-left) - env(safe-area-inset-right))); max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px); }
   }
 </style>
 </head>
@@ -1139,6 +1187,9 @@ Review tab markup contract:
 </div>
 
 <div class="mobile-dock" id="mobileDock">
+  <button type="button" class="landscape-toggle" id="landscapeHeaderToggle" aria-label="Page information" aria-haspopup="dialog" aria-controls="landscapeHeaderDialog" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
   <button type="button" id="mobileFiles" aria-label="Changed files" aria-haspopup="dialog" aria-controls="mobileFilesDialog">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
   </button>
@@ -1147,6 +1198,9 @@ Review tab markup contract:
 <dialog class="mobile-files-dialog" id="mobileFilesDialog" aria-labelledby="mobileFilesTitle">
   <div class="mobile-files-heading"><span id="mobileFilesTitle" data-i18n="changedFiles">Changed files</span><button type="button" id="mobileFilesClose" aria-label="Close">×</button></div>
 </dialog>
+<dialog class="landscape-header-dialog" id="landscapeHeaderDialog" aria-labelledby="landscapeHeaderTitle">
+  <div class="mobile-files-heading"><span id="landscapeHeaderTitle" data-i18n="pageInfo">Page information</span><button type="button" id="landscapeHeaderClose" aria-label="Close">×</button></div>
+</dialog>
 
 <script>
 (function () {
@@ -1154,6 +1208,8 @@ Review tab markup contract:
   var body = document.body;
   var $ = function (s, c) { return (c || document).querySelector(s); };
   var $$ = function (s, c) { return [].slice.call((c || document).querySelectorAll(s)); };
+  var mqLandscape = window.matchMedia('(max-width: 1199px) and (max-height: 500px) and (orientation: landscape) and (pointer: coarse)');
+  var mqTouch = window.matchMedia('(pointer: coarse)');
 
   /* ---------- i18n ----------
      The chrome (tabs, toolbar, toggles, quiz feedback) is picked from this table
@@ -1165,7 +1221,7 @@ Review tab markup contract:
       explain: 'Explain', review: 'Review', contents: 'Contents',
       background: 'Background', intuition: 'Intuition', code: 'Code', quiz: 'Quiz',
       changedFiles: 'Changed files', scrollOld: 'Scroll old code horizontally', scrollNew: 'Scroll new code horizontally', splitView: 'Show side by side', unifiedView: 'Show unified view', splitUnavailable: 'Side by side requires a wider code area',
-      close: 'Close',
+      close: 'Close', pageInfo: 'Page information', moreDetails: 'More details',
       collapseAll: 'Collapse all', expandAll: 'Expand all',
       wrapOn: 'Turn on line wrap', wrapOff: 'Turn off line wrap',
       pinCard: 'Pin card', unpin: 'Unpin',
@@ -1184,7 +1240,7 @@ Review tab markup contract:
       explain: '설명', review: '리뷰', contents: '목차',
       background: '배경', intuition: '직관', code: '코드', quiz: '퀴즈',
       changedFiles: '변경 파일', scrollOld: '이전 코드 가로 스크롤', scrollNew: '변경 코드 가로 스크롤', splitView: '좌우로 보기', unifiedView: '위아래로 보기', splitUnavailable: '코드 영역이 더 넓어야 좌우로 볼 수 있습니다',
-      close: '닫기',
+      close: '닫기', pageInfo: '페이지 정보', moreDetails: '상세 정보',
       collapseAll: '전체 접기', expandAll: '전체 펼침',
       wrapOn: '줄바꿈 켜기', wrapOff: '줄바꿈 끄기',
       pinCard: '카드 고정', unpin: '고정 해제',
@@ -1209,6 +1265,11 @@ Review tab markup contract:
     if (!row || !more) return;
     var badges = $$('.badge-row > .badge');
     badges.forEach(function (badge) { badge.hidden = false; });
+    if (mqLandscape.matches) {
+      more.hidden = false;
+      $('summary', more).textContent = T.moreDetails;
+      return;
+    }
     more.hidden = true;
     var gap = parseFloat(getComputedStyle(row).gap) || 0;
     var width = badges.reduce(function (sum, badge) { return sum + badge.offsetWidth + gap; }, -gap);
@@ -1246,6 +1307,7 @@ Review tab markup contract:
     });
   }
 
+  // Apply translated labels to the page controls.
   function applyI18n() {
     $$('[data-i18n]').forEach(function (el) {
       var key = el.getAttribute('data-i18n');
@@ -1256,6 +1318,8 @@ Review tab markup contract:
     $('#inlineNext').setAttribute('aria-label', T.nextComment);
     $('#mobileFiles').setAttribute('aria-label', T.changedFiles);
     $('#mobileFilesClose').setAttribute('aria-label', T.close);
+    $('#landscapeHeaderToggle').setAttribute('aria-label', T.pageInfo);
+    $('#landscapeHeaderClose').setAttribute('aria-label', T.close);
     if (theme && !theme.getAttribute('data-i18n-live')) theme.title = T.themeToggleInitial;
     var toggleAll = $('#toggleAll');
     if (toggleAll) { toggleAll.title = T.collapseAll; toggleAll.setAttribute('aria-label', T.collapseAll); }
@@ -1291,10 +1355,12 @@ Review tab markup contract:
   // Put a whitespace text node right after <br> so words don't run together when it disappears in the
   // compact state (leading whitespace on a line collapses away anyway)
   $$('h1 br', hero).forEach(function (br) { br.parentNode.insertBefore(document.createTextNode(' '), br.nextSibling); });
+  // Measure the page header, reserving no main-page height in compact landscape mode.
   function measureHero() {
     hero.classList.remove('is-compact');
     hero.style.setProperty('--p', 0);
     slot.style.minHeight = '';
+    if (mqLandscape.matches) { compactH = 0; root.style.setProperty('--hd', '0px'); return; }
     if (lede) hero.style.setProperty('--lede-h', lede.scrollHeight + 'px');
     var full = hero.offsetHeight;
     slot.style.minHeight = full + 'px';
@@ -1304,8 +1370,9 @@ Review tab markup contract:
     root.style.setProperty('--hd', compactH + 'px');
     updateHero();
   }
+  // Keep the landscape panel expanded and shrink the normal page header on scroll.
   function updateHero() {
-    var p = Math.min(1, Math.max(0, window.scrollY / SHRINK));
+    var p = mqLandscape.matches ? 0 : Math.min(1, Math.max(0, window.scrollY / SHRINK));
     hero.style.setProperty('--p', p.toFixed(4));
     hero.classList.toggle('is-compact', p >= .6);
   }
@@ -1331,10 +1398,11 @@ Review tab markup contract:
     syncMobileDock();
   }
   tabBtns.forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab); }); });
+  // Switch tabs with the arrow keys for the current toolbar orientation.
   tabBtns.forEach(function (button, index) {
     button.addEventListener('keydown', function (event) {
-      var next = event.key === 'ArrowRight' ? (index + 1) % tabBtns.length
-        : event.key === 'ArrowLeft' ? (index + tabBtns.length - 1) % tabBtns.length
+      var next = event.key === 'ArrowRight' || (mqLandscape.matches && event.key === 'ArrowDown') ? (index + 1) % tabBtns.length
+        : event.key === 'ArrowLeft' || (mqLandscape.matches && event.key === 'ArrowUp') ? (index + tabBtns.length - 1) % tabBtns.length
         : event.key === 'Home' ? 0 : event.key === 'End' ? tabBtns.length - 1 : -1;
       if (next < 0) return;
       event.preventDefault();
@@ -1367,6 +1435,8 @@ Review tab markup contract:
   /* ---------- side folds (mobile) ---------- */
   var mqMobile = window.matchMedia('(max-width: 860px)');
   var mqCol = window.matchMedia('(min-width: 1200px)');
+  // Use mobile controls on narrow screens and short touch landscape screens.
+  function mobileUI() { return mqMobile.matches || mqLandscape.matches; }
   function syncFolds() {
     $$('.side-fold').forEach(function (d) { if (!mqMobile.matches) d.open = true; else if (!d.dataset.touched) d.open = false; });
   }
@@ -1395,7 +1465,7 @@ Review tab markup contract:
   bindSmoothNav(fileLinks, true);
   var side = $('#side');
   // Return the top boundary for the floating comment card.
-  function stickY() { return hd() + (body.dataset.tab === 'review' && !mqMobile.matches ? (parseFloat(getComputedStyle(root).getPropertyValue('--tb')) || 44) + 12 : 0) + 16; }
+  function stickY() { return hd() + (body.dataset.tab === 'review' && !mobileUI() ? (parseFloat(getComputedStyle(root).getPropertyValue('--tb')) || 44) + 12 : 0) + 16; }
   /* Baseline = the vertical center of the viewport. At the very top it starts at the first anchor and moves
      down with scroll until it settles at 50%. */
   var ENTER = .5, firstAnchorPage = 0;
@@ -2094,6 +2164,19 @@ Review tab markup contract:
   });
 
   /* ---------- scroll / resize ---------- */
+  var readingPosition = null, readingTimer = 0, restoringReading = false;
+  // Remember the visible code row or text block after touch scrolling settles.
+  function rememberReadingPosition() {
+    if (!mqTouch.matches || window.innerWidth > 1199 || restoringReading || (headerDialog && headerDialog.open)) return;
+    if (window.scrollY < 1) { readingPosition = { top: true, tab: body.dataset.tab }; return; }
+    var main = $('main'), rect = main.getBoundingClientRect();
+    var y = Math.min(window.innerHeight * .45, hd() + 100);
+    var hit = document.elementFromPoint(rect.left + rect.width / 2, y);
+    var element = hit && hit.closest('tr, p, li, h2, h3, .diagram, .q, .gh-diff');
+    if (!element || !main.contains(element)) return;
+    var box = element.getBoundingClientRect();
+    readingPosition = { element: element, fraction: Math.max(0, Math.min(1, (y - box.top) / box.height)), tab: body.dataset.tab };
+  }
   // Keep the file header rounded when its bottom edge reaches the file boundary.
   function syncEndingObservers() {
     if (body.dataset.tab !== 'review') return;
@@ -2107,6 +2190,7 @@ Review tab markup contract:
     updateHero();
     if (body.dataset.tab === 'explain') { pinSolo(); markActive(tocLinks, tocSections); }
     else { syncEndingObservers(); markActive(fileLinks, fileEls); updateComments(); }
+    if (mqTouch.matches && !restoringReading) { clearTimeout(readingTimer); readingTimer = setTimeout(rememberReadingPosition, 120); }
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('wheel', function () { holdK = -1; }, { passive: true });
@@ -2195,12 +2279,12 @@ Review tab markup contract:
   mobileDialog.addEventListener('click', function (event) { if (event.target === mobileDialog) mobileDialog.close(); });
   // Move the existing controls between the mobile dock and their desktop locations.
   function syncMobileDock() {
-    if (mqMobile.matches && !docked) {
+    if (mobileUI() && !docked) {
       mobileDock.insertBefore(tabs, mobileFiles);
       mobileReview.append(collapseButton, wrapButton, commentNav);
       docked = true;
       sizeMobileReview();
-    } else if (!mqMobile.matches && docked) {
+    } else if (!mobileUI() && docked) {
       side.insertBefore(tabs, side.firstChild);
       toolbar.insertBefore(commentNav, toolbarButtons);
       toolbarButtons.append(collapseButton, wrapButton);
@@ -2216,6 +2300,60 @@ Review tab markup contract:
     });
   }
   mqMobile.addEventListener('change', function () { syncMobileDock(); scheduleLayout(); });
+  var headerDialog = $('#landscapeHeaderDialog'), headerToggle = $('#landscapeHeaderToggle');
+  var landscapeActive = false, headerScroll = 0;
+  // Move the existing header into the landscape information panel and restore it on rotation.
+  function syncLandscape() {
+    if (landscapeActive === mqLandscape.matches) return;
+    var position = readingPosition;
+    clearTimeout(readingTimer);
+    restoringReading = true;
+    landscapeActive = mqLandscape.matches;
+    if (headerDialog.open) headerDialog.close();
+    var more = $('.badge-more', hero);
+    if (more) more.open = false;
+    if (landscapeActive) headerDialog.appendChild(hero);
+    else slot.appendChild(hero);
+    tabs.setAttribute('aria-orientation', landscapeActive ? 'vertical' : 'horizontal');
+    measureHero(); fitBadges(); syncMobileDock(); scheduleLayout();
+    // Restore the same place within the reading block after the new layout settles.
+    requestAnimationFrame(function () {
+      // Wait for the scheduled comment layout before restoring its reading anchor.
+      requestAnimationFrame(function () {
+        if (position && position.tab === body.dataset.tab) {
+          if (position.top) window.scrollTo(0, 0);
+          else if (position.element.isConnected && position.element.getClientRects().length) {
+            var rect = position.element.getBoundingClientRect();
+            window.scrollBy(0, rect.top + rect.height * position.fraction - Math.min(window.innerHeight * .45, hd() + 100));
+          }
+        }
+        restoringReading = false;
+        onScroll(); rememberReadingPosition();
+      });
+    });
+  }
+  // Open the header panel without changing the main page's reading position.
+  function openHeaderPanel() {
+    rememberReadingPosition();
+    headerScroll = window.scrollY;
+    headerDialog.showModal();
+    headerToggle.setAttribute('aria-expanded', 'true');
+    fitBadges();
+  }
+  headerToggle.addEventListener('click', openHeaderPanel);
+  // Close the information panel from its close control.
+  $('#landscapeHeaderClose').addEventListener('click', function () { headerDialog.close(); });
+  // Close the panel only when a click lands outside its bounds.
+  headerDialog.addEventListener('click', function (event) {
+    var rect = headerDialog.getBoundingClientRect();
+    if (event.target === headerDialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) headerDialog.close();
+  });
+  // Restore the trigger and the unchanged main scroll after closing the panel.
+  headerDialog.addEventListener('close', function () {
+    headerToggle.setAttribute('aria-expanded', 'false');
+    if (mqLandscape.matches) { window.scrollTo(0, headerScroll); headerToggle.focus({ preventScroll: true }); }
+  });
+  mqLandscape.addEventListener('change', syncLandscape);
 
   var splitButton = $('#toggleSplit'), splitWanted = true, splitPrepared = false, splitLastWidth = 0;
   // Build two native scrollable tables with matching rows for each file.
@@ -2309,7 +2447,7 @@ Review tab markup contract:
   // Use side-by-side view only while the code area has enough room.
   function syncSplitView() {
     var mainWidth = Math.round($('main').getBoundingClientRect().width);
-    var available = mainWidth >= 960 && !mqMobile.matches;
+    var available = mainWidth >= 960 && !mobileUI();
     var split = available && splitWanted && body.dataset.tab === 'review';
     if (split && !splitPrepared) prepareSplitRows();
     var changed = (body.dataset.diffView === 'split') !== split;
@@ -2338,6 +2476,7 @@ Review tab markup contract:
 
   /* ---------- init ---------- */
   sizeLineNumbers();
+  syncLandscape();
   syncMobileDock();
   syncSplitView();
   measureHero();
