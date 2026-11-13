@@ -39,6 +39,7 @@ the assembler, the template — was written independently for this repo. See
   - `scripts/render_diff.py` — reads the real `git diff` and assembles the page, instead of the
     agent hand-transcribing a diff into HTML
   - Light/dark theme, line-wrap toggles, per-tab scroll memory
+  - Content widths up to 1600px for code review and 1000px for explanations
   - Short touch landscape screens (up to 500px tall and 1199px wide) use a header drawer
     and right-side controls, with the reading position preserved on rotation
   - A copy button that copies `file:line` on drag-select in a code block 
