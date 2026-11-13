@@ -95,6 +95,7 @@ STRINGS = {
     "en": {
         "comments_badge": lambda n: f"{n} comment" if n == 1 else f"{n} comments",
         "comments_stat_html": lambda n: f"<b>{n}</b> comments",
+        "comments_label": "Comments",
         "elide": lambda n: f"{n} lines collapsed - Expand",
         "suggestion": "Suggestion",
         "view_full_diff": "View in full diff →",
@@ -106,6 +107,7 @@ STRINGS = {
     "ko": {
         "comments_badge": lambda n: f"코멘트 {n}개",
         "comments_stat_html": lambda n: f"코멘트 <b>{n}</b>",
+        "comments_label": "Comments",
         "elide": lambda n: f"{n}줄 생략 · 펼치기",
         "suggestion": "제안",
         "view_full_diff": "전체 diff에서 보기 →",
@@ -940,7 +942,7 @@ def main(argv=None) -> int:
                f'<div class="badge-popover">{card}</div></details>')
     side_stat = (f'<b>{len(files)}</b> files · <span class="add">+{adds}</span> <span class="del">−{dels}</span>'
                  f' · {S["comments_stat_html"](len(comments))}')
-    tb_stat = S["comments_stat_html"](len(comments))
+    tb_stat = S["comments_label"]
     shown = [f.path for f in files[:3]]
     more = S["and_more"](len(files) - 3) if len(files) > 3 else ""
     footer = f"{esc(label)} · {esc(' · '.join(shown))}{more} · {esc(date)}"

@@ -585,6 +585,11 @@ Review tab markup contract:
   .rv-toolbar .tb-cur { color: var(--faint); }
   .rv-toolbar .tb-cur b { color: var(--text); }
   .rv-toolbar .tb-btns { margin-left: auto; display: inline-flex; gap: 4px; }
+  .inline-nav { display: inline-flex; align-items: center; gap: 2px; flex: none; }
+  .inline-nav button { border: 0; background: transparent; color: var(--muted); padding: 5px; border-radius: 6px; cursor: pointer; }
+  .inline-nav button:disabled { opacity: .3; cursor: default; }
+  .inline-nav button:not(:disabled):hover { background: var(--surface-2); color: var(--text); }
+  .inline-nav svg { display: block; width: 14px; height: 14px; }
   .tb-btns button {
     border: 0; background: transparent; color: var(--muted);
     font-family: Inter, "IBM Plex Sans KR", sans-serif; font-size: 12px; font-weight: 500;
@@ -761,7 +766,7 @@ Review tab markup contract:
   .rv-solo .rv-card .rv-hd { position: relative; z-index: 1; }
   .rv-stepper {
     position: absolute; left: 0; top: -28px;
-    display: flex; align-items: center; gap: 2px;
+    display: none; align-items: center; gap: 2px;
     font-family: "Geist Mono", ui-monospace, monospace; font-size: 12px;
     color: var(--text); user-select: none;
   }
@@ -819,6 +824,8 @@ Review tab markup contract:
   .rv-card {
     background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-elevated);
     padding: 0 0 14px; font-size: 13.5px; line-height: 1.6; color: var(--text-2);
+    font-family: Inter, "IBM Plex Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    white-space: normal; word-break: normal;
   }
   /* Collapsed: only the active card expands, the rest shrink to a thin tag one code-line tall (28px). JS supplies max-height */
   /* The html prefix is so this wins, at equal specificity, over the global theme transition (html.theme-ready *) which comes later */
@@ -868,6 +875,7 @@ Review tab markup contract:
   .rv-card p { font-size: 13.5px; margin: 0 0 8px; padding: 0 14px; color: var(--text-2); }
   .rv-card p:last-child { margin-bottom: 0; }
   .rv-card ul { font-size: 13px; margin: 0 0 8px; padding: 0 14px 0 32px; }
+  .rv-card p, .rv-card li { overflow-wrap: anywhere; }
   .rv-card code { font-size: .88em; }
   /* Suggestion block: a small gh-diff inside the card. The header uses a small-label tone like a diagram caption, plus a lightbulb icon */
   .rv-card .gh-diff { margin: 12px 14px 0; border-radius: 10px; box-shadow: var(--shadow-card); }
@@ -887,8 +895,12 @@ Review tab markup contract:
   .rv-card.is-collapsed:hover { box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-card); }
   .rv-card.is-collapsed:hover .rv-ll { color: var(--text); }
   /* inline (narrow) mode */
-  tr.rv-inline td { padding: 8px 14px 10px 46px !important; background: var(--bg-subtle); }
-  tr.rv-inline .rv-card, .rv-inline-file .rv-card { position: static; transform: none; opacity: 1; box-shadow: var(--shadow-card); max-height: none !important; min-height: 120px; overflow: visible; }
+  tr.rv-inline td { padding: 8px 14px 10px !important; background: var(--bg-subtle); }
+  html tr.rv-inline .rv-card { position: sticky; left: 14px; width: var(--comment-width); max-width: var(--comment-width); box-sizing: border-box; }
+  html tr.rv-inline .rv-card, html .rv-inline-file .rv-card { transform: none; opacity: 1; box-shadow: var(--shadow-elevated), var(--shadow-md); max-height: none !important; min-height: 120px; overflow: hidden; }
+  .rv-inline .rv-n, .rv-inline-file .rv-n { display: none; }
+  .rv-inline .rv-ll, .rv-inline-file .rv-ll { background: var(--accent); color: var(--on-accent); }
+  html tr.rv-inline .rv-card.is-selected, html .rv-inline-file .rv-card.is-selected { box-shadow: 0 0 0 2px #4d8dff, var(--shadow-elevated), var(--shadow-md); }
   tr.rv-inline .rv-card::after, .rv-inline-file .rv-card::after { display: none; }
   .rv-inline-file { padding: 10px 14px; background: var(--bg-subtle); border-bottom: .5px solid var(--border); }
 
@@ -917,7 +929,6 @@ Review tab markup contract:
     .side-hr, .side-stat { display: none; }
     .race { grid-template-columns: 1fr; }
     .rv-toolbar { margin-top: 0; }
-    tr.rv-inline td { padding-left: 14px !important; }
   }
 </style>
 </head>
@@ -986,7 +997,12 @@ Review tab markup contract:
 
   <div class="pane" data-pane="review">
     <div class="rv-toolbar">
-      <span class="tb-stat"><!-- @@TBSTAT --><span class="tb-cur" id="tbCur"></span></span>
+      <span class="tb-stat"><!-- @@TBSTAT --></span>
+      <span class="inline-nav">
+        <button type="button" id="inlinePrev" aria-label="Previous comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+        <span id="inlineCount" aria-live="polite">0 / 0</span>
+        <button type="button" id="inlineNext" aria-label="Next comment"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+      </span>
       <span class="tb-btns">
         <button type="button" id="toggleAll" class="all-open" title="Collapse all" aria-label="Collapse all">
           <svg class="ic-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg>
@@ -1115,6 +1131,8 @@ Review tab markup contract:
       if (T[key] !== undefined) el.textContent = T[key];
     });
     var theme = $('#themeToggle');
+    $('#inlinePrev').setAttribute('aria-label', T.prevComment);
+    $('#inlineNext').setAttribute('aria-label', T.nextComment);
     if (theme && !theme.getAttribute('data-i18n-live')) theme.title = T.themeToggleInitial;
     var toggleAll = $('#toggleAll');
     if (toggleAll) { toggleAll.title = T.collapseAll; toggleAll.setAttribute('aria-label', T.collapseAll); }
@@ -1519,9 +1537,9 @@ Review tab markup contract:
   /* ---------- comments ---------- */
   var col = $('#rvCol');
   var wraps = $$('.rv-wrap', col);
-  var tbCur = $('#tbCur');
   var ordered = [];
   var picked = null;
+  var inlinePicked = null;
   var layoutQueued = false;
   function scheduleLayout() {
     if (layoutQueued) return;
@@ -1554,12 +1572,13 @@ Review tab markup contract:
   wraps.forEach(function (w) {
     var card = w.firstElementChild;
     var hoverOn = function () { setHighlight(w.dataset.for, true); };
-    var hoverOff = function () { if (!w.classList.contains('is-active')) setHighlight(w.dataset.for, false); };
+    var hoverOff = function () { if (w !== inlinePicked && !w.classList.contains('is-active')) setHighlight(w.dataset.for, false); };
     var go = function () { selectComment(w, true); };
     card.addEventListener('mouseenter', hoverOn);
     card.addEventListener('mouseleave', hoverOff);
     card.addEventListener('click', function (e) {
       if (e.target.closest('a')) return;
+      if (!mqCol.matches) { selectInline(w, false); return; }
       if (expandMode() === 'click') {
         if (card.classList.contains('is-collapsed') || e.target.closest('.rv-hd')) selectComment(w, true);
         return;
@@ -1604,6 +1623,48 @@ Review tab markup contract:
     scheduleLayout();
   });
   var lastK = -2, holdK = -1;
+  // Return inline comments in document order, including collapsed files.
+  function visibleInlineComments() {
+    return wraps.filter(function (w) { return w._inline && rowsOf(w.dataset.for).length; });
+  }
+  // Keep the inline toolbar and the selected card in sync.
+  function updateInlineControls() {
+    var items = visibleInlineComments(), index = items.indexOf(inlinePicked);
+    if (inlinePicked && index < 0) { setHighlight(inlinePicked.dataset.for, false); inlinePicked._inline.firstElementChild.classList.remove('is-selected'); inlinePicked = null; }
+    $('#inlineCount').textContent = (index < 0 ? 0 : index + 1) + ' / ' + items.length;
+    $('#inlinePrev').disabled = index <= 0;
+    $('#inlineNext').disabled = !items.length || index === items.length - 1;
+  }
+  // Select one inline card and its code, optionally scrolling to the card.
+  function selectInline(w, scroll) {
+    if (inlinePicked && inlinePicked._inline) {
+      inlinePicked._inline.firstElementChild.classList.remove('is-selected');
+      setHighlight(inlinePicked.dataset.for, false);
+    }
+    inlinePicked = w;
+    if (w && w._inline) {
+      var anchor = rowsOf(w.dataset.for)[0];
+      var file = anchor && anchor.closest('details.rv-file');
+      if (file) file.open = true;
+      var table = anchor && anchor.closest('table');
+      if (table && table.hidden) {
+        var expand = table.parentElement.querySelector('.rv-elide button');
+        if (expand) expand.click();
+      }
+      w._inline.firstElementChild.classList.add('is-selected');
+      setHighlight(w.dataset.for, true);
+      if (scroll) w._inline.firstElementChild.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    updateInlineControls();
+  }
+  // Move to the adjacent visible inline comment.
+  function stepInline(direction) {
+    var items = visibleInlineComments(), index = items.indexOf(inlinePicked);
+    var next = index < 0 ? 0 : index + direction;
+    if (items[next]) selectInline(items[next], true);
+  }
+  $('#inlinePrev').addEventListener('click', function () { if (mqCol.matches) stepComment(-1); else stepInline(-1); });
+  $('#inlineNext').addEventListener('click', function () { if (mqCol.matches) stepComment(1); else stepInline(1); });
   function stepComment(dir) {
     if (!ordered.length) return;
     var line = window.scrollY + enterY() - colPageTop;
@@ -1623,6 +1684,9 @@ Review tab markup contract:
     var prev = $('.rv-prev', solo), next = $('.rv-next', solo);
     if (prev) prev.disabled = k <= 0;
     if (next) next.disabled = k < 0 || k >= ordered.length - 1;
+    $('#inlineCount').textContent = (k < 0 ? 0 : k + 1) + ' / ' + ordered.length;
+    $('#inlinePrev').disabled = k <= 0;
+    $('#inlineNext').disabled = !ordered.length || k >= ordered.length - 1;
   }
   var prevBtn = $('.rv-prev', solo), nextBtn = $('.rv-next', solo);
   if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); stepComment(-1); });
@@ -1696,15 +1760,21 @@ Review tab markup contract:
       w.hidden = false;
     });
   }
+  // Place comment cards beside the code or within the visible width of each file.
   function layoutComments() {
     if (!col || !wraps.length) return;
     if (!mqCol.matches || body.dataset.tab !== 'review') {
+      $$('.rv-file-body').forEach(function (fileBody) {
+        if (fileBody.clientWidth) fileBody.style.setProperty('--comment-width', Math.max(0, fileBody.clientWidth - 28) + 'px');
+      });
       if (!mqCol.matches) toInline();
+      if (!mqCol.matches) updateInlineControls();
       ordered = [];
       col.style.minHeight = '';
       return;
     }
     toColumn();
+    if (inlinePicked) { setHighlight(inlinePicked.dataset.for, false); inlinePicked.firstElementChild.classList.remove('is-selected'); inlinePicked = null; }
     var colTop = col.getBoundingClientRect().top + window.scrollY;
     colPageTop = colTop;
     var items = [];
@@ -1817,7 +1887,7 @@ Review tab markup contract:
     soloCard.classList.add('is-flash');
   }
   function updateComments() {
-    if (!ordered.length) { if (tbCur) tbCur.textContent = ''; return; }
+    if (!ordered.length) { if (mqCol.matches) syncNav(-1); return; }
     var line = window.scrollY + enterY() - colPageTop;
     var tbLine = window.scrollY + stickY() - colPageTop;
     var k = activeIndex(line, tbLine);
@@ -1839,7 +1909,6 @@ Review tab markup contract:
     lastK = k;
     pinSolo(k >= 0 ? ordered[k] : null, changed);
     syncNav(k);
-    if (tbCur) tbCur.innerHTML = k >= 0 ? T.commentCounter(k + 1, ordered.length) : '';
   }
   function pinTail(it) {
     var tail = $('.rv-tail', solo);
