@@ -1318,6 +1318,7 @@ Review tab markup contract:
     if (body.dataset.tab === t) return;
     tabScrollY[body.dataset.tab] = window.scrollY;
     body.dataset.tab = t;
+    syncSplitView();
     tabBtns.forEach(function (b) { b.classList.toggle('active', b.dataset.tab === t); });
     pinSolo();
     scheduleLayout();
@@ -1700,8 +1701,21 @@ Review tab markup contract:
     requestAnimationFrame(function () { layoutQueued = false; layoutComments(); syncEndingObservers(); });
   }
   var rvPane = $('.pane[data-pane="review"]');
+  var rowIndex = null;
+  // Index comment anchors once and rebuild the index when split rows are created.
+  function indexCommentRows() {
+    rowIndex = new Map();
+    $$('[data-rv]', rvPane).forEach(function (row) {
+      row.getAttribute('data-rv').trim().split(/\s+/).forEach(function (id) {
+        if (!rowIndex.has(id)) rowIndex.set(id, []);
+        rowIndex.get(id).push(row);
+      });
+    });
+  }
+  // Return the current view's comment anchors in visible screen order.
   function rowsOf(id) {
-    return $$('[data-rv~="' + id + '"]', rvPane).filter(function (row) {
+    if (!rowIndex) indexCommentRows();
+    return (rowIndex.get(id) || []).filter(function (row) {
       var native = !!row.closest('.rv-native');
       return row.matches('summary') || (body.dataset.diffView === 'split' ? native : !native);
     }).sort(function (a, b) {
@@ -1717,16 +1731,21 @@ Review tab markup contract:
     if (tbl && tbl.hidden) return false;
     return true;
   }
-  var highlightOn = {};
+  var highlightOn = {}, highlightMode = {};
+  // Update row highlighting only when the state or visible view changes.
   function setHighlight(id, on) {
     var was = !!highlightOn[id];
+    if (was === on && highlightMode[id] === body.dataset.diffView) return;
     highlightOn[id] = on;
+    highlightMode[id] = body.dataset.diffView;
     var rows = rowsOf(id);
     rows.forEach(function (r) { r.classList.toggle('rv-on', on); });
     if (on && !was) {
-      rows.forEach(function (r) {
-        r.classList.remove('rv-flash'); void r.offsetWidth; r.classList.add('rv-flash');
-      });
+      // Reset the whole range before flushing layout once to restart its animation.
+      rows.forEach(function (r) { r.classList.remove('rv-flash'); });
+      if (rows.length) void rows[0].offsetWidth;
+      // Start all line flashes together after the shared layout read.
+      rows.forEach(function (r) { r.classList.add('rv-flash'); });
     }
   }
   function itemOf(w) { var it = null; ordered.forEach(function (o) { if (o.w === w) it = o; }); return it; }
@@ -1872,8 +1891,7 @@ Review tab markup contract:
     var maxT = Math.max(minT, window.innerHeight - h - 12);
     var top;
     if (it && it.a) {
-      var rows = rowsOf(it.w.dataset.for);
-      var a = rows[0] || it.a, b = rows[rows.length - 1] || a;
+      var a = it.a, b = it.b || a;
       var mid = (a.getBoundingClientRect().top + b.getBoundingClientRect().bottom) / 2;
       top = mid - h / 2;
     } else {
@@ -1947,7 +1965,7 @@ Review tab markup contract:
       var lastRow = rows[rows.length - 1];
       if (!anchorVisible(lastRow)) lastRow = a;
       var end = lastRow.getBoundingClientRect().bottom + window.scrollY - colTop;
-      items.push({ w: w, a: a, anchor: top, end: end });
+      items.push({ w: w, a: a, b: lastRow, anchor: top, end: end });
     });
     items.sort(function (x, y) { return x.anchor - y.anchor; });
     firstAnchorPage = items.length ? colTop + items[0].anchor : 0;
@@ -1957,19 +1975,6 @@ Review tab markup contract:
       it.w._mark.hidden = false;
       it.w._mark.style.setProperty('--len', Math.max(0, Math.round(it.end - it.anchor) - 32) + 'px');
       it.w._mark.style.transform = 'translateY(' + Math.round(it.anchor) + 'px)';
-      // Need to measure the height in the expanded state. If a transition is running, offsetHeight reports the collapsed value.
-      var wasCollapsed = card.classList.contains('is-collapsed');
-      var prevT = card.style.transition;
-      card.style.transition = 'none';
-      card.classList.remove('is-collapsed');
-      card.style.maxHeight = 'none';
-      card.style.minHeight = '0';
-      void card.offsetHeight;
-      it.fullH = card.scrollHeight;
-      card.style.transition = prevT;
-      if (wasCollapsed) card.classList.add('is-collapsed');
-      it.colH = Math.min(it.fullH, COLLAPSED_H);
-      it.cardH = it.fullH;
     });
     ordered = items;
     fitTail();
@@ -1985,24 +1990,8 @@ Review tab markup contract:
     var need = Math.max(0, Math.ceil(mid + 8 - afterWithout));
     if (Math.abs(need - cur) > 1) pad.style.height = need + 'px';
   }
-  /*
-    Card position is a pure function of scroll position (so it's automatically symmetric in reverse).
-    Two lines: the expand line (enterY, 65% of the viewport) and the toolbar line (stickY).
-    k    = the last comment whose first line (anchor) has passed the expand line and whose range's last line
-           hasn't yet gone above the toolbar = active. Only one expands at a time. If none qualifies
-           (an empty gap), nothing expands. Its position is clamp(expand line, anchor, range-end - HEAD):
-           it stays put (sticky) while, relative to the code, it moves down the rail within its range, and
-           once the range's end reaches the card's head it exits together with the code. It doesn't push
-           other cards and sits in front (z 1000).
-    Everything else = collapsed into a thin tag (COLLAPSED_H) that stays next to its own anchor and moves
-           with the code. If two land on the same line, the later one is nudged down.
-    Rail = the number chip (.rv-mark) and range line on the 30px left rail stay pinned to the anchor at all
-           times, independent of the card, so their presence and range stay visible even when an expanded
-           card covers other tags.
-    No fade, no shrink.
-  */
-  var colPageTop = 0, GAP = 4, COLLAPSED_H = 28, HEAD = 40, MIN_H = 120;
-  function cardMaxH() { return Math.max(MIN_H, window.innerHeight - stickY() - 16); }
+  // Keep the floating card aligned with the active comment's code range.
+  var colPageTop = 0, MIN_H = 120;
   function selectComment(w, doScroll) {
     var it = itemOf(w);
     if (!it) return;
@@ -2048,6 +2037,7 @@ Review tab markup contract:
     void soloCard.offsetHeight;
     soloCard.classList.add('is-flash');
   }
+  // Update the active comment and its navigation while scrolling.
   function updateComments() {
     if (!ordered.length) { if (mqCol.matches) syncNav(-1); return; }
     var line = window.scrollY + enterY() - colPageTop;
@@ -2059,9 +2049,6 @@ Review tab markup contract:
     }
     ordered.forEach(function (it, i) {
       var active = i === k;
-      it.w._mark.hidden = false;
-      it.w._mark.style.setProperty('--len', Math.max(0, Math.round(it.end - it.anchor) - 32) + 'px');
-      it.w._mark.style.transform = 'translateY(' + Math.round(it.anchor) + 'px)';
       it.w._mark.classList.toggle('is-active', active);
       setHighlight(it.w.dataset.for, active);
     });
@@ -2072,13 +2059,13 @@ Review tab markup contract:
     pinSolo(k >= 0 ? ordered[k] : null, changed);
     syncNav(k);
   }
+  // Align the comment pointer with the cached code range.
   function pinTail(it) {
     var tail = $('.rv-tail', solo);
     if (!tail) return;
     if (!it || !it.a) { tail.style.visibility = 'hidden'; return; }
     tail.style.visibility = '';
-    var rows = rowsOf(it.w.dataset.for);
-    var a = rows[0] || it.a, b = rows[rows.length - 1] || a;
+    var a = it.a, b = it.b || a;
     var mid = (a.getBoundingClientRect().top + b.getBoundingClientRect().bottom) / 2;
     var sr = solo.getBoundingClientRect();
     tail.style.top = Math.max(18, Math.min(sr.height - 18, mid - sr.top)) + 'px';
@@ -2230,7 +2217,7 @@ Review tab markup contract:
   }
   mqMobile.addEventListener('change', function () { syncMobileDock(); scheduleLayout(); });
 
-  var splitButton = $('#toggleSplit'), splitWanted = true, splitPrepared = false;
+  var splitButton = $('#toggleSplit'), splitWanted = true, splitPrepared = false, splitLastWidth = 0;
   // Build two native scrollable tables with matching rows for each file.
   function prepareSplitRows() {
     $$('.rv-file-body > .rv-tbl').forEach(function (source) {
@@ -2290,6 +2277,7 @@ Review tab markup contract:
       });
       source.after(view);
     });
+    rowIndex = null;
     splitPrepared = true;
   }
   // Match native table widths and row heights after layout or line-wrap changes.
@@ -2299,24 +2287,30 @@ Review tab markup contract:
       if (!view.getClientRects().length) return;
       var panes = Array.from(view.children), tables = panes.map(function (pane) { return pane.firstElementChild; });
       tables.forEach(function (table) { table.style.minWidth = ''; });
-      view._pairs.forEach(function (pair) { pair[0].style.height = ''; pair[1].style.height = ''; });
+      if (view._heightAdjusted) {
+        view._pairs.forEach(function (pair) { pair[0].style.height = ''; pair[1].style.height = ''; });
+        view._heightAdjusted = false;
+      }
       if (body.dataset.wrap === 'off') {
         var width = Math.max(tables[0].offsetWidth, tables[1].offsetWidth);
         tables.forEach(function (table) { table.style.minWidth = width + 'px'; });
+      } else {
+        var heights = view._pairs.map(function (pair) {
+          return Math.max(pair[0].getBoundingClientRect().height, pair[1].getBoundingClientRect().height);
+        });
+        view._pairs.forEach(function (pair, index) {
+          pair[0].style.height = heights[index] + 'px'; pair[1].style.height = heights[index] + 'px';
+        });
+        view._heightAdjusted = true;
       }
-      var heights = view._pairs.map(function (pair) {
-        return Math.max(pair[0].getBoundingClientRect().height, pair[1].getBoundingClientRect().height);
-      });
-      view._pairs.forEach(function (pair, index) {
-        pair[0].style.height = heights[index] + 'px'; pair[1].style.height = heights[index] + 'px';
-      });
     });
     scheduleLayout();
   }
   // Use side-by-side view only while the code area has enough room.
   function syncSplitView() {
-    var available = $('main').getBoundingClientRect().width >= 960 && !mqMobile.matches;
-    var split = available && splitWanted;
+    var mainWidth = Math.round($('main').getBoundingClientRect().width);
+    var available = mainWidth >= 960 && !mqMobile.matches;
+    var split = available && splitWanted && body.dataset.tab === 'review';
     if (split && !splitPrepared) prepareSplitRows();
     var changed = (body.dataset.diffView === 'split') !== split;
     body.dataset.diffView = split ? 'split' : 'unified';
@@ -2325,8 +2319,9 @@ Review tab markup contract:
     splitButton.setAttribute('aria-pressed', String(split));
     splitButton.setAttribute('aria-label', !available ? T.splitUnavailable : split ? T.unifiedView : T.splitView);
     splitButton.title = splitButton.getAttribute('aria-label');
-    if (split) requestAnimationFrame(fitSplitViews);
+    if (split && (changed || mainWidth !== splitLastWidth)) requestAnimationFrame(fitSplitViews);
     else if (changed) scheduleLayout();
+    splitLastWidth = mainWidth;
   }
   splitButton.addEventListener('click', function () { splitWanted = !splitWanted; syncSplitView(); });
   if (window.ResizeObserver) new ResizeObserver(syncSplitView).observe($('main'));
