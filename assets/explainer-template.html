@@ -99,9 +99,8 @@ Review tab markup contract:
     --radius-sm: 8px;
     --radius: 12px;
     --ease: cubic-bezier(.22, 1, .36, 1);
-    --cols: 220px minmax(0, 1600px) 200px;
+    --rail: 220px;
     --gap: 40px;
-    --maxw: 2164px;
     --hd: 78px;   /* compact header height. JS measures and overrides this */
   }
   html[data-theme="dark"] {
@@ -172,6 +171,12 @@ Review tab markup contract:
     color: var(--text);
     font-weight: 450;
   }
+  body {
+    --article-max: 1600px;
+    --cols: var(--rail) minmax(0, var(--article-max)) var(--rail);
+    --maxw: calc(var(--article-max) + 2 * var(--rail) + 2 * var(--gap) + 64px);
+  }
+  body[data-tab="explain"] { --article-max: 1000px; }
   button { font: inherit; }
   [hidden] { display: none !important; }
 
@@ -291,12 +296,19 @@ Review tab markup contract:
   }
   main { min-width: 0; }
   .pane { min-width: 0; }
-  .pane[data-pane="explain"] { max-width: 1000px; }
+  @media (min-width: 1200px) {
+    .hero-txt { view-transition-name: page-header; }
+  }
+  ::view-transition-group(page-header) { animation-duration: .28s; animation-timing-function: var(--ease); }
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: 0s; }
+  }
   body[data-tab="explain"] [data-pane="review"] { display: none; }
   body[data-tab="review"] [data-pane="explain"] { display: none; }
 
   /* ---------- aside ---------- */
   .side {
+    width: min(220px, 100%); justify-self: end;
     position: sticky;
     top: calc(var(--hd) + 16px);
     align-self: start;
@@ -965,11 +977,12 @@ Review tab markup contract:
 
   /* ---------- responsive ---------- */
   @media (max-width: 1199px) {
-    html[data-theme], :root { --cols: 200px minmax(0, 1fr); --maxw: 1080px; }
+    html[data-theme], :root { --rail: 200px; }
     .rv-col { display: none; }
   }
   @media (max-width: 1199px) {
-    html[data-theme], :root { --cols: 1fr; --gap: 8px; }
+    html[data-theme], :root { --gap: 8px; }
+    body { --cols: 1fr; --maxw: calc(var(--article-max) + 36px); }
     .hero-in { padding-left: 18px; padding-right: 18px; }
     .hero-txt { grid-column: 1; }
     h1 { font-size: calc(26px - 10px * var(--p)); }
@@ -1373,6 +1386,15 @@ Review tab markup contract:
     hero.classList.toggle('is-compact', p >= .6);
   }
 
+  var heroWidth = 0;
+  // Refresh the header spacer when the centered layout changes width.
+  if (window.ResizeObserver) new ResizeObserver(function (entries) {
+    var width = Math.round(entries[0].contentRect.width);
+    if (width === heroWidth) return;
+    heroWidth = width;
+    measureHero();
+  }).observe($('.hero-in'));
+
   /* ---------- tabs & hash routing ---------- */
   var tabBtns = $$('.tabs button');
   var tabScrollY = { explain: 0, review: 0 };
@@ -1393,7 +1415,17 @@ Review tab markup contract:
     onScroll();
     syncMobileDock();
   }
-  tabBtns.forEach(function (b) { b.addEventListener('click', function () { setTab(b.dataset.tab); }); });
+  var tabTransition = null;
+  // Animate desktop tab changes after applying the new layout once.
+  function switchTab(t) {
+    if (tabTransition) tabTransition.skipTransition();
+    if (!document.startViewTransition || mobileUI() || reduceMotion.matches) { setTab(t); return; }
+    tabTransition = document.startViewTransition(function () { setTab(t); measureHero(); });
+    tabTransition.ready.catch(function () {});
+    tabTransition.finished.catch(function () {});
+  }
+  // Switch the selected tab with the desktop layout transition.
+  tabBtns.forEach(function (b) { b.addEventListener('click', function () { switchTab(b.dataset.tab); }); });
   // Switch tabs with the arrow keys for the current toolbar orientation.
   tabBtns.forEach(function (button, index) {
     button.addEventListener('keydown', function (event) {
@@ -1402,7 +1434,7 @@ Review tab markup contract:
         : event.key === 'Home' ? 0 : event.key === 'End' ? tabBtns.length - 1 : -1;
       if (next < 0) return;
       event.preventDefault();
-      setTab(tabBtns[next].dataset.tab);
+      switchTab(tabBtns[next].dataset.tab);
       tabBtns[next].focus();
     });
   });
